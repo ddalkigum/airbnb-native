@@ -1,21 +1,50 @@
-import { StatusBar } from 'expo-status-bar';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from "react";
+import { AppLoading } from "expo";
+import { Asset } from "expo-asset";
+import *as Font from "expo-font";
+import { Ionicons } from '@expo/vector-icons';
+import { Text, Image } from "react-native";
+import { Provider } from "react-redux";
+import Gate from "./components/Gate";
+import store from "./redux/store"
+
+const cacheImages = images =>
+  images.map(image => {
+    if (typeof image === "string") {
+      return Image.prefetch(image);
+    } else {
+      return Asset.fromModule(image).downloadAsync();
+    }
+  });
+
+const cacheFonts = fonts => fonts.map(font => Font.loadAsync(font))
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
-}
+  const [isReady, setIsReady] = useState(false);
+  const handleFinish = () => setIsReady(true);
+  const loadAssets = async () => {
+    const images = [
+      require("./assets/loginBG.jpeg"),
+      "http://logok.org/wp-content/uploads/2014/07/airbnb-logo-belo-219x286.png"
+    ];
+    const fonts = [
+      Ionicons.font
+    ]
+    const imagePromises = cacheImages(images);
+    const fontPromises = cacheFonts(fonts)
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+    return Promise.all([...fontPromises, ...imagePromises])
+  };
+  return isReady ? (
+    <Provider store={store}>
+      <Gate></Gate>
+    </Provider>
+
+  ) : (
+      <AppLoading
+        onError={console.error}
+        onFinish={handleFinish}
+        startAsync={loadAssets}
+      />
+    );
+}
